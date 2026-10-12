@@ -1,0 +1,9 @@
+
+event_id,timestamp,account,computer,event
+E001,2026-10-12 09:00:00,student01,LAB-PC-01,success
+E002,2026-10-12 10:00:00,student02,LAB-PC-02,failure
+E003,2026-10-12 10:02:00,student02,LAB-PC-02,failure
+E004,2026-10-12 10:04:00,student02,LAB-PC-02,failure
+E005,2026-10-12 10:05:00,student02,LAB-PC-02,success
+E006,2026-10-12 22:30:00,student03,LAB-PC-03,success
+E007,2026-10-12 11:00:00,student04,LAB-PC-04,failure
