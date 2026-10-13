@@ -113,6 +113,21 @@ h1, h2, h3 {
     color: var(--cyan-soft);
 }
 
+
+.severity-medium {
+    color: #FBBF24;
+    background-color: #3B2F12;
+}
+.severity-high {
+    color: #FB923C;
+    background-color: #3B2115;
+}
+.severity-critical {
+    color: #F87171;
+    background-color: #3B171D;
+}
+
+
 .stButton > button, .stDownloadButton > button {
     background: var(--cyan);
     color: #00363E;
@@ -152,6 +167,7 @@ code, .technical {
 
 defaults = {
     "failed_threshold": 3,
+    "consecutive_threshold": 5,
     "window_minutes": 10,
     "opening_hour": 8,
     "closing_hour": 18,
@@ -204,12 +220,17 @@ def show_metrics(incidents, event_count):
         int((incidents["severity"] == "High").sum())
         if incident_count else 0
     )
+    critical_count = (
+    int((incidents["severity"] == "Critical Review").sum())
+    if incident_count else 0
+    )
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Events Analyzed", event_count)
     c2.metric("Incidents Detected", incident_count)
     c3.metric("Affected Accounts", affected)
     c4.metric("High-Severity Alerts", high_count)
+    c5.metric("Critical Reviews", critical_count) 
 
 
 def show_incidents(incidents):
@@ -222,8 +243,28 @@ def show_incidents(incidents):
     display_df = incidents.copy()
     display_df["event_ids"] = display_df["event_ids"].astype(str)
 
+    
+    def severity_style(value):
+        styles = {
+            "Medium": (
+                "color: #FBBF24; background-color: #3B2F12; "
+                "font-weight: bold"
+            ),
+            "High": (
+                "color: #FB923C; background-color: #3B2115; "
+                "font-weight: bold"
+            ),
+            "Critical Review": (
+                "color: #F87171; background-color: #3B171D; "
+                "font-weight: bold"
+            ),
+        }
+        return styles.get(value, "")
+
     st.dataframe(
-        display_df,
+        display_df.style.applymap(
+            severity_style, subset=["severity"]
+        ),
         use_container_width=True,
         hide_index=True,
         column_config={
@@ -365,6 +406,7 @@ elif page == "Analyze Logs":
                         incidents = analyze_events(
                             df,
                             failed_threshold=st.session_state.failed_threshold,
+                            consecutive_threshold=st.session_state.consecutive_threshold,
                             window_minutes=st.session_state.window_minutes,
                             opening_hour=st.session_state.opening_hour,
                             closing_hour=st.session_state.closing_hour,
@@ -386,6 +428,7 @@ elif page == "Analyze Logs":
                     show_metrics(
                         st.session_state["incidents"],
                         st.session_state["event_count"],
+                        
                     )
                     st.divider()
                     show_incidents(st.session_state["incidents"])
@@ -440,6 +483,15 @@ elif page == "Settings":
         )
 
         submitted = st.form_submit_button("Save Settings")
+        st.markdown("### Consecutive Failed Login Attempts")
+        
+        consecutive_threshold = st.number_input(
+                    "Consecutive failures before alert",
+                    min_value=5,
+                    max_value=20,
+                    value=st.session_state.consecutive_threshold,
+                    help="Flags repeated failures without a successful login ending the sequence.",
+        )   
 
         if submitted:
             if opening >= closing:
@@ -449,11 +501,13 @@ elif page == "Settings":
                 st.session_state.window_minutes = int(window)
                 st.session_state.opening_hour = int(opening)
                 st.session_state.closing_hour = int(closing)
+                st.session_state.consecutive_threshold = int(consecutive_threshold)
 
                 # Results from previous settings should not be treated as current.
                 clear_analysis()
 
                 st.success("Settings saved. Run your analysis again.")
+             
 
     st.divider()
     st.caption(

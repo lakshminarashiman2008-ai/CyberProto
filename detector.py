@@ -5,6 +5,12 @@ REQUIRED_COLUMNS = {
     "event_id", "timestamp", "account", "computer", "event"
 }
 
+INCIDENT_COLUMNS = [
+    "account", "computer", "rule", "severity",
+    "start_time", "end_time", "event_ids",
+    "evidence", "recommendation",
+]
+
 
 def analyze_events(
     df,
@@ -12,6 +18,7 @@ def analyze_events(
     window_minutes=10,
     opening_hour=8,
     closing_hour=18,
+    consecutive_threshold=5,
 ):
     """Detect suspicious login patterns with explainable evidence."""
 
@@ -21,20 +28,23 @@ def analyze_events(
             f"Missing required columns: {', '.join(sorted(missing))}"
         )
 
-    if not (1 <= failed_threshold):
-        raise ValueError("Failed-login threshold must be at least 1.")
+    if failed_threshold < 1 or consecutive_threshold < 1:
+        raise ValueError("Failed-login thresholds must be at least 1.")
 
     if window_minutes < 1:
         raise ValueError("Detection window must be at least 1 minute.")
 
-    if not (0 <= opening_hour <= 23 and 1 <= closing_hour <= 24):
+    if not (
+        0 <= opening_hour <= 23
+        and 1 <= closing_hour <= 24
+        and opening_hour < closing_hour
+    ):
         raise ValueError("Invalid lab hours.")
 
-    if opening_hour >= closing_hour:
-        raise ValueError("Opening hour must be earlier than closing hour.")
-
     df = df.copy()
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+    df["timestamp"] = pd.to_datetime(
+        df["timestamp"], errors="coerce"
+    )
 
     if df["timestamp"].isna().any():
         raise ValueError("Some timestamps are invalid.")
@@ -52,7 +62,7 @@ def analyze_events(
 
     # Rule 1: Repeated failures followed by a successful login.
     for (account, computer), group in df.groupby(
-        ["account", "computer"], dropna=False
+        ["account", "computer"], dropna=False, sort=False
     ):
         failures_seen = group[group["event"] == "failure"]
 
@@ -60,7 +70,6 @@ def analyze_events(
             start = success["timestamp"] - pd.Timedelta(
                 minutes=window_minutes
             )
-
             failures = failures_seen[
                 (failures_seen["timestamp"] >= start)
                 & (failures_seen["timestamp"] < success["timestamp"])
@@ -113,10 +122,76 @@ def analyze_events(
                 ),
             })
 
-    columns = [
-        "account", "computer", "rule", "severity",
-        "start_time", "end_time", "event_ids",
-        "evidence", "recommendation",
-    ]
+    # Rule 3: Consecutive failures without a successful login.
+    # A streak followed by success within the window is handled by Rule 1.
+    for (account, computer), group in df.groupby(
+        ["account", "computer"], dropna=False, sort=False
+    ):
+        group = group.sort_values("timestamp")
+        streak = []
 
-    return pd.DataFrame(incidents, columns=columns)
+        def add_failure_incident(failures):
+            if len(failures) < consecutive_threshold:
+                return
+
+            count = len(failures)
+            if count >= 10:
+                severity = "Critical Review"
+            elif count >= 8:
+                severity = "High"
+            else:
+                severity = "Medium"
+
+            incidents.append({
+                "account": account,
+                "computer": computer,
+                "rule": "Consecutive failed login attempts",
+                "severity": severity,
+                "start_time": failures[0]["timestamp"],
+                "end_time": failures[-1]["timestamp"],
+                "event_ids": ", ".join(
+                    str(item["event_id"]) for item in failures
+                ),
+                "evidence": (
+                    f"{count} consecutive failed login attempts occurred "
+                    f"within a {window_minutes}-minute window, with no "
+                    "successful login ending the sequence."
+                ),
+                "recommendation": (
+                    "Review the authentication records and verify the "
+                    "activity with the account owner. Critical cases "
+                    "require urgent human review."
+                ),
+            })
+
+    
+        for _, event in group.iterrows():
+            if streak:
+                span = (
+                    event["timestamp"] - streak[0]["timestamp"]
+                ).total_seconds() / 60
+
+                if span > window_minutes:
+                    add_failure_incident(streak)
+                    streak = []
+
+            if event["event"] == "failure":
+                streak.append(event.to_dict())
+            else:
+                if streak:
+                    gap_to_success = (
+                        event["timestamp"] - streak[-1]["timestamp"]
+                    ).total_seconds() / 60
+
+                    if gap_to_success <= window_minutes:
+                        # Rule 1 handles this failure-to-success sequence.
+                        streak = []
+                    else:
+                        add_failure_incident(streak)
+                        streak = []
+
+        # Process any remaining streak after the loop finishes.
+        add_failure_incident(streak)
+
+
+    return pd.DataFrame(incidents, columns=INCIDENT_COLUMNS)
