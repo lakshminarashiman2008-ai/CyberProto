@@ -237,57 +237,6 @@ def clear_database_history():
 init_database()
 
 
-# -------------------- ADMIN AUTHENTICATION --------------------
-def show_login():
-    try:
-        username = st.secrets["auth"]["username"]
-        password_hash = st.secrets["auth"]["password_hash"]
-        cookie_key = st.secrets["auth"]["cookie_key"]
-    except Exception:
-        st.error(
-            "Authentication secrets are missing. Configure "
-            "`.streamlit/secrets.toml` with the [auth] username, "
-            "password_hash, and cookie_key values."
-        )
-        st.stop()
-
-    credentials = {
-        "usernames": {
-            username: {
-                "name": "Administrator",
-                "password": password_hash,
-            }
-        }
-    }
-
-    authenticator = stauth.Authenticate(
-        credentials=credentials,
-        cookie_name="cyber_sentinels_auth",
-        cookie_key=cookie_key,
-        cookie_expiry_days=7,
-        auto_hash=False,
-    )
-    authenticator.login(
-        location="main",
-        max_login_attempts=5,
-        fields={
-            "Form name": "Cyber Sentinels Admin Login",
-            "Username": "Username",
-            "Password": "Password",
-            "Login": "Log in",
-        },
-    )
-    auth_status = st.session_state.get("authentication_status")
-    if auth_status is not True:
-        if auth_status is False:
-            st.error("Invalid username or password.")
-        st.stop()
-    return authenticator
-
-
-authenticator = show_login()
-
-
 # -------------------- THEME --------------------
 st.markdown(
     """
@@ -346,11 +295,85 @@ st.markdown(
     .severity{font:10px 'DM Mono',monospace;padding:3px 7px;border-radius:99px;letter-spacing:.04em;}
     .sev-high{background:#4a1530;color:#ff9dc4;}.sev-medium{background:#453615;color:#ffd77d;}.sev-critical{background:#501a24;color:#ff929a;}.sev-low{background:#064d3a;color:#6df4bd;}
     .activity-copy{font-size:12px;line-height:1.55;color:#a6c3c8;}
-    @media(max-width:900px){.mini-grid{grid-template-columns:1fr}.hero-title{font-size:21px}}
+    .login-shell{max-width:620px;margin:3vh auto 12px;padding:28px 30px 22px;background:linear-gradient(145deg,rgba(5,43,48,.94),rgba(0,28,32,.96));border:1px solid #14515a;border-radius:20px;box-shadow:0 24px 80px #00000035;position:relative;overflow:hidden;}
+    .login-shell:after{content:"";position:absolute;width:220px;height:220px;right:-90px;top:-120px;border-radius:50%;border:1px solid #1b677033;box-shadow:0 0 0 22px #1b677014,0 0 0 46px #1b67700c;pointer-events:none;}
+    .login-mark{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border:1px solid #1b6770;border-radius:14px;background:#07363c;color:var(--cyan);font-size:28px;margin-bottom:20px;box-shadow:0 0 28px #21d5e817;}
+    .login-title{font:600 clamp(30px,4vw,42px) 'Space Grotesk',sans-serif;color:#e0fbff;letter-spacing:-.055em;line-height:1.1;margin:0 0 10px;}
+    .login-title span{color:var(--cyan);}
+    .login-copy{max-width:440px;color:#9bbfc4;font-size:14px;line-height:1.7;}
+    .login-status{margin-top:22px;padding-top:15px;border-top:1px solid #12434a;font:10px 'DM Mono',monospace;letter-spacing:.08em;color:#9dc2c7;}
+    .login-divider{color:#426d73;padding:0 8px;}
+    [data-testid="stForm"]{max-width:620px;margin:0 auto 5vh;padding:22px 30px 26px;background:rgba(0,27,31,.85);border:1px solid #12434a;border-radius:0 0 18px 18px;}
+    [data-testid="stForm"] label{font-size:12px;color:#a9cdd2;}
+    [data-testid="stForm"] [data-baseweb="input"] input{padding:12px 13px;}
+    [data-testid="stForm"] button{width:100%;min-height:44px;margin-top:8px;}
+    [data-testid="stSidebar"] [data-testid="stButton"]>button{width:100%;text-align:left;justify-content:flex-start;background:transparent;color:#8eafb4;border:1px solid transparent;border-radius:10px;padding:11px 13px;font-size:13px;font-weight:600;box-shadow:none;}
+    [data-testid="stSidebar"] [data-testid="stButton"]>button:hover{background:#052b30;color:#d7f7fb;border-color:#12434a;}
+    [data-testid="stSidebar"] [data-testid="stButton"]>button[kind="primary"]{background:linear-gradient(100deg,#073b42,#062a30);color:#8ef2fb;border-color:#17616a;box-shadow:inset 3px 0 0 var(--cyan);}
+    .nav-section{font:10px 'DM Mono',monospace;letter-spacing:.15em;color:#5f858b;margin:12px 0 8px 4px;}
+    .page-header{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
+    .section-copy{color:#8fb2b8;font-size:13px;line-height:1.6;}
+    @media(max-width:900px){.mini-grid{grid-template-columns:1fr}.hero-title{font-size:21px}.login-shell{margin-top:1vh;padding:23px 20px}.login-title{font-size:31px}[data-testid="stForm"]{padding:18px 20px}}
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+
+# -------------------- ADMIN AUTHENTICATION --------------------
+def show_login():
+    try:
+        username = st.secrets["auth"]["username"]
+        password_hash = st.secrets["auth"]["password_hash"]
+        cookie_key = st.secrets["auth"]["cookie_key"]
+    except Exception:
+        st.error(
+            "Authentication secrets are missing. Configure "
+            "`.streamlit/secrets.toml` with the [auth] username, "
+            "password_hash, and cookie_key values."
+        )
+        st.stop()
+
+    credentials = {
+        "usernames": {
+            username: {
+                "name": "Administrator",
+                "password": password_hash,
+            }
+        }
+    }
+
+    authenticator = stauth.Authenticate(
+        credentials=credentials,
+        cookie_name="cyber_sentinels_auth",
+        cookie_key=cookie_key,
+        cookie_expiry_days=7,
+        auto_hash=False,
+    )
+    st.markdown(
+        """<div class="login-shell"><div class="login-mark">◈</div><div class="eyebrow">SECURITY OPERATIONS · AUTHENTICATION</div><div class="login-title">Cyber <span>Sentinels</span></div><div class="login-copy">Evidence-led authentication monitoring for shared lab environments.</div><div class="login-status"><span class="status-dot"></span>SECURE ANALYST ACCESS <span class="login-divider">/</span> LOCAL SESSION</div></div>""",
+        unsafe_allow_html=True,
+    )
+    authenticator.login(
+        location="main",
+        max_login_attempts=5,
+        fields={
+            "Form name": "Cyber Sentinels Admin Login",
+            "Username": "Username",
+            "Password": "Password",
+            "Login": "Log in",
+        },
+    )
+    auth_status = st.session_state.get("authentication_status")
+    if auth_status is not True:
+        if auth_status is False:
+            st.error("Invalid username or password.")
+        st.stop()
+    return authenticator
+
+
+authenticator = show_login()
+
 
 # -------------------- SETTINGS --------------------
 defaults = {
@@ -474,31 +497,32 @@ def show_incidents(incidents):
 
 
 # -------------------- SIDEBAR --------------------
+def choose_page(destination):
+    st.session_state["active_page"] = destination
+
+if "active_page" not in st.session_state:
+    st.session_state["active_page"] = "Dashboard"
+
 with st.sidebar:
     st.markdown("""<div class="brand-lockup"><div class="brand-name">◈ Cyber Sentinels</div><div class="brand-sub">SHARED LAB AUTH GUARD</div></div><div class="eyebrow"><span class="status-dot"></span>MONITORING READY</div>""", unsafe_allow_html=True)
     st.caption("Explainable authentication monitoring")
-    st.divider()
-    page = st.radio(
-        "NAVIGATION",
-        ["Dashboard", "Incidents", "History", "Settings"],
-        label_visibility="visible",
-    )
+    st.markdown('<div class="nav-section">WORKSPACE</div>', unsafe_allow_html=True)
+    nav_items = [("Dashboard", "◫"), ("History", "◷"), ("Settings", "⚙")]
+    for destination, glyph in nav_items:
+        is_active = st.session_state["active_page"] == destination
+        if st.button(f"{glyph}    {destination}", key=f"nav_{destination.lower()}", type="primary" if is_active else "secondary", use_container_width=True):
+            choose_page(destination)
+            st.rerun()
     st.divider()
     authenticator.logout(
-        button_name="Log out",
+        button_name="↪  Log out",
         location="sidebar",
         key="admin_logout",
     )
     st.divider()
-    st.caption("Explainable security analysis")
     st.caption("Alerts are leads for human review.")
-    sidebar_warnings = st.session_state.get("repeat_warnings", pd.DataFrame())
-    if not sidebar_warnings.empty:
-        st.warning(f"{len(sidebar_warnings)} historical account warning(s)")
-        with st.expander("View repeat accounts"):
-            for account in sidebar_warnings["account"].tolist():
-                st.write(f"• {account}")
 
+page = st.session_state["active_page"]
 
 header_left, header_right = st.columns([3, 1])
 with header_left:
@@ -608,9 +632,6 @@ if page == "Dashboard":
             st.markdown("### Recent Security Activity")
             if incidents.empty:
                 st.markdown("<div style='padding:24px 10px;text-align:center;color:#78969b'>No security activity to display yet.<br>Upload a CSV and run analysis to populate this stream.</div>", unsafe_allow_html=True)
-                if st.button("Open Analyze Logs", use_container_width=True):
-                    st.session_state["_jump_to_analyze"] = True
-                    st.rerun()
             else:
                 recent = incidents.tail(5).iloc[::-1]
                 for _, row in recent.iterrows():
@@ -622,47 +643,33 @@ if page == "Dashboard":
                     st.markdown(f"""<div class="activity-card"><div class="activity-top"><span class="activity-name">{html.escape(str(row.get('computer','Unknown host')))} · {html.escape(str(row.get('account','Unknown account')))}</span><span><span class="severity {css_sev}">{severity.upper()}</span> <span class="activity-time">{stamp}</span></span></div><div class="activity-copy">{html.escape(evidence)}</div><div style="font:10px DM Mono,monospace;color:#78969b;margin-top:7px">{html.escape(str(row.get('rule','Detection rule')))}</div></div>""", unsafe_allow_html=True)
                 st.caption("Most recent findings from the current analysis. Review evidence before taking action.")
 
-    st.markdown("### Historical Account Signals")
-    repeat_accounts = get_repeat_accounts(min_runs=2)
-    if repeat_accounts.empty:
-        st.caption("No account has been flagged across two or more distinct analysis runs yet.")
-    else:
-        st.caption("Accounts flagged in at least two distinct analysis runs. Repeated flags are a review signal, not proof of misuse.")
-        st.dataframe(repeat_accounts,use_container_width=True,hide_index=True)
+    st.markdown("### Historical Warnings")
+    current_warnings = st.session_state.get("repeat_warnings", pd.DataFrame())
+    global_repeat_accounts = get_repeat_accounts(min_runs=2)
+    with st.expander(f"View historical account warnings · {len(current_warnings)} current-upload match(es)", expanded=False):
+        show_historical_warnings(current_warnings, heading="Accounts previously flagged in earlier uploads")
+        st.divider()
+        st.markdown("#### Repeatedly flagged accounts across all saved runs")
+        if global_repeat_accounts.empty:
+            st.caption("No account has been flagged across two or more distinct analysis runs yet.")
+        else:
+            st.caption("Repeated flags are a review signal, not proof of misuse.")
+            st.dataframe(global_repeat_accounts, use_container_width=True, hide_index=True)
+
+    with st.expander(f"Full incident register · {len(incidents)} incident(s)", expanded=not incidents.empty):
+        show_incidents(incidents)
+
     if not incidents.empty and st.button("Clear Current Results"):
         clear_current_analysis()
         st.rerun()
-
-
-# -------------------- INCIDENTS --------------------
-elif page == "Incidents":
-    st.markdown("<div class='eyebrow'>◉ ANALYST WORKSPACE</div>", unsafe_allow_html=True)
-    st.markdown("## Incident Review")
-    st.caption("Review evidence-backed findings from your latest CSV analysis. Alerts are signals for human review, not proof of compromise.")
-    incidents = st.session_state.get("incidents", pd.DataFrame())
-    if incidents.empty and not st.session_state.get("analysis_complete"):
-        with st.container(border=True):
-            st.markdown("### No analysis loaded")
-            st.write("Upload and analyze an authentication CSV from the Dashboard to populate this workspace.")
-            st.info("Expected columns: event_id, timestamp, account, computer, event")
-    else:
-        if st.session_state.get("duplicate_upload"):
-            st.info("This exact CSV was analyzed previously. Existing history was reused to avoid inflating repeat counts.")
-        elif st.session_state.get("analysis_complete"):
-            st.success(f"Latest analysis: {st.session_state.get('current_filename', 'CSV upload')} · {st.session_state.get('event_count', 0):,} events")
-        show_metrics(incidents, int(st.session_state.get("event_count", 0)))
-        st.divider()
-        show_historical_warnings(st.session_state.get("repeat_warnings", pd.DataFrame()))
-        st.divider()
-        show_incidents(incidents)
 
 
 # -------------------- HISTORY --------------------
 elif page == "History":
     st.markdown("<div class='eyebrow'>◷ AUDIT TRAIL</div>", unsafe_allow_html=True)
     st.markdown("## Analysis History")
-    st.caption("SQLite stores analysis metadata, account identifiers, and detected incidents—not raw CSV files.")
-
+    st.markdown("<div class='section-copy'>A searchable audit trail of completed analyses and evidence-backed findings. Raw CSV uploads are not stored in SQLite.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
     runs = get_recent_runs()
     if runs.empty:
         st.info("No analyses have been saved yet.")
@@ -687,19 +694,13 @@ elif page == "History":
                 mime="text/csv",
             )
 
-    st.markdown("### Repeat Accounts")
-    repeat_accounts = get_repeat_accounts(min_runs=2)
-    if repeat_accounts.empty:
-        st.info("No account has been flagged in multiple distinct runs yet.")
-    else:
-        st.dataframe(repeat_accounts, use_container_width=True, hide_index=True)
-
 
 # -------------------- SETTINGS --------------------
 elif page == "Settings":
     st.markdown("<div class='eyebrow'>⚙ CONTROL PLANE</div>", unsafe_allow_html=True)
     st.markdown("## Detection Settings")
-    st.write("Changes apply to the next analysis.")
+    st.markdown("<div class='section-copy'>Tune the detection thresholds used for future uploads. Changes take effect the next time you run an analysis.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
     with st.form("detection_settings"):
         st.markdown("### Repeated Login Failures")
