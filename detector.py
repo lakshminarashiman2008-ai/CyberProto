@@ -59,7 +59,7 @@ def analyze_events(df):
             failures = group[
                 (group["event"] == "failure")
                 & (group["timestamp"] >= start)
-                & (group["timestamp"] <= success["timestamp"])
+                & (group["timestamp"] < success["timestamp"])
             ]
 
             if len(failures) >= FAILED_THRESHOLD:
@@ -85,21 +85,23 @@ def analyze_events(df):
                     ),
                 })
 
-    # Rule 2: Repeated failures without requiring a successful login.
-    # A qualifying sequence is reported once per account/computer pair.
+    # Rule 2: Repeated failures without a successful login
+    # in the same 10-minute window.
     for (account, computer), group in df.groupby(
         ["account", "computer"], dropna=False
     ):
-        failures = (
-            group[group["event"] == "failure"]
-            .sort_values("timestamp")
-        )
+        failures = group[
+            group["event"] == "failure"
+        ].sort_values("timestamp")
+
+        successes = group.loc[
+            group["event"] == "success", "timestamp"
+        ]
 
         if len(failures) < FAILED_THRESHOLD:
             continue
 
         times = failures["timestamp"].reset_index(drop=True)
-        flagged_window = None
 
         for i in range(len(times)):
             start = times.iloc[i]
@@ -110,31 +112,41 @@ def analyze_events(df):
                 & (failures["timestamp"] <= end)
             ]
 
-            if len(window_failures) >= FAILED_THRESHOLD:
-                flagged_window = window_failures
-                break
+            if len(window_failures) < FAILED_THRESHOLD:
+                continue
 
-        if flagged_window is not None:
+            # Do not create a second incident if a success
+            # occurs within this candidate 10-minute window.
+            has_success = (
+                (successes >= start) & (successes <= end)
+            ).any()
+
+            if has_success:
+                continue
+
             incidents.append({
                 "account": account,
                 "computer": computer,
                 "rule": "Repeated failures without successful login",
                 "severity": "High",
-                "start_time": flagged_window["timestamp"].min(),
-                "end_time": flagged_window["timestamp"].max(),
+                "start_time": window_failures["timestamp"].min(),
+                "end_time": window_failures["timestamp"].max(),
                 "event_ids": (
-                    flagged_window["event_id"].astype(str).tolist()
+                    window_failures["event_id"].astype(str).tolist()
                 ),
                 "evidence": (
-                    f"{len(flagged_window)} failed login attempts occurred "
-                    f"within {WINDOW_MINUTES} minutes. "
-                    "No successful login is required to trigger this rule."
+                    f"{len(window_failures)} failed login attempts "
+                    f"occurred within {WINDOW_MINUTES} minutes, "
+                    "with no successful login in that window."
                 ),
                 "recommendation": (
                     "Investigate the repeated failures and verify "
                     "whether the account owner initiated them."
                 ),
             })
+
+            # Report only the first qualifying window for this pair.
+            break
 
     # Rule 3: Successful logins outside lab hours.
     opening_hour = 8

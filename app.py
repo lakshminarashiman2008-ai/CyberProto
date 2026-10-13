@@ -5,13 +5,23 @@ import plotly.express as px
 
 from detector import analyze_events
 from validator import validate_csv
-
+from database import (
+    init_db,
+    save_incidents,
+    get_incident_history,
+    get_recurring_accounts,
+    get_recurring_computers,
+    get_recurring_patterns,
+)
 
 st.set_page_config(
     page_title="Cyber Sentinels",
     page_icon="🛡️",
     layout="wide",
 )
+
+# Initialize the SQLite database
+init_db()
 
 
 # -------------------- CUSTOM STYLING --------------------
@@ -120,13 +130,17 @@ page = st.sidebar.radio(
 # -------------------- DASHBOARD --------------------
 
 if page == "Dashboard":
+
     st.subheader("Security Overview")
+
     st.info(
         "Upload authentication logs from the Analyze Logs page "
         "to begin monitoring."
     )
 
+    # Current session analysis
     if "incidents" in st.session_state:
+
         incidents = st.session_state["incidents"]
         total = st.session_state.get("event_count", 0)
 
@@ -157,10 +171,97 @@ if page == "Dashboard":
                 hide_index=True,
             )
 
+    # -------------------- HISTORICAL MONITORING --------------------
+
+    st.divider()
+    st.subheader("Historical Security Monitoring")
+
+    try:
+        history = get_incident_history()
+        recurring_accounts = get_recurring_accounts()
+        recurring_computers = get_recurring_computers()
+        recurring_patterns = get_recurring_patterns()
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric("Stored Incidents", len(history))
+        col2.metric("Recurring Accounts", len(recurring_accounts))
+        col3.metric("Recurring Computers", len(recurring_computers))
+
+        st.caption(
+            "Historical information is stored in the SQLite database "
+            "and remains available across app reruns."
+        )
+
+        # Recurring accounts
+        st.subheader("Recurring Accounts")
+
+        if recurring_accounts.empty:
+            st.info("No accounts have multiple recorded incidents.")
+        else:
+            st.dataframe(
+                recurring_accounts,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        # Recurring computers
+        st.subheader("Recurring Computers / Labs")
+
+        if recurring_computers.empty:
+            st.info("No computers have multiple recorded incidents.")
+        else:
+            st.dataframe(
+                recurring_computers,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        # Recurring patterns
+        st.subheader("Recurring Detection Patterns")
+
+        if recurring_patterns.empty:
+            st.info("No repeated account-computer-rule patterns found.")
+        else:
+            st.dataframe(
+                recurring_patterns,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        # Complete history
+        st.subheader("Complete Incident History")
+
+        if history.empty:
+            st.info("No incidents have been stored yet.")
+        else:
+            display_history = history.drop(
+                columns=["fingerprint"],
+                errors="ignore",
+            )
+
+            st.dataframe(
+                display_history,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            st.download_button(
+                "Export Historical Incidents",
+                data=history.to_csv(index=False),
+                file_name="cyber_sentinels_history.csv",
+                mime="text/csv",
+                key="export_history",
+            )
+
+    except Exception as exc:
+        st.error(f"Could not load incident history: {exc}")
+
 
 # -------------------- ANALYZE LOGS --------------------
 
 else:
+
     st.subheader("Analyze Authentication Logs")
 
     uploaded_file = st.file_uploader(
@@ -170,6 +271,7 @@ else:
     )
 
     if uploaded_file is not None:
+
         try:
             df = pd.read_csv(uploaded_file)
 
@@ -233,10 +335,12 @@ else:
                                 use_container_width=True,
                                 hide_index=True,
                             )
+
                         else:
                             st.info("No lab records are available.")
 
                 else:
+
                     if "event_id" not in df.columns:
                         st.error(
                             "CSV is missing the 'event_id' column."
@@ -261,8 +365,7 @@ else:
                             )
 
                             filtered_df = df[
-                                df["event_id"].astype(str)
-                                == selected_event
+                                df["event_id"].astype(str) == selected_event
                             ]
 
                             st.caption(
@@ -275,6 +378,7 @@ else:
                                 use_container_width=True,
                                 hide_index=True,
                             )
+
                         else:
                             st.info("No event records are available.")
 
@@ -287,18 +391,30 @@ else:
                     "Run Security Analysis",
                     type="primary",
                 ):
+
                     try:
-                        incidents = analyze_events(df)
+                        # Detect incidents from the uploaded logs
+                        detected_incidents = analyze_events(df)
+
+                        # Save incidents to SQLite and identify recurrence
+                        incidents = save_incidents(detected_incidents)
 
                         st.session_state["incidents"] = incidents
                         st.session_state["event_count"] = len(df)
                         st.session_state["analysis_complete"] = True
 
+                        st.success(
+                            "Security analysis completed and "
+                            "incident history updated."
+                        )
+
                     except Exception as exc:
                         st.error(f"Analysis failed: {exc}")
 
-                # Show results after analysis has been run
+                # -------------------- DISPLAY RESULTS --------------------
+
                 if st.session_state.get("analysis_complete", False):
+
                     incidents = st.session_state["incidents"]
                     total = st.session_state["event_count"]
 
@@ -325,6 +441,7 @@ else:
 
                     if incidents.empty:
                         st.success("No incidents detected.")
+
                     else:
                         display_incidents = incidents.drop(
                             columns=["start_time", "end_time"],
@@ -342,6 +459,7 @@ else:
                         st.subheader("Incident Distribution")
 
                         if "rule" in incidents.columns:
+
                             counts = (
                                 incidents["rule"]
                                 .value_counts()
