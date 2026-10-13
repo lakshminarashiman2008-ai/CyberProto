@@ -1,10 +1,10 @@
 
 import hashlib
-
+import bcrypt
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-
+import streamlit_authenticator as stauth
 from detector import analyze_events
 from validator import validate_csv
 
@@ -14,6 +14,53 @@ st.set_page_config(
     page_icon="🛡️",
     layout="wide",
 )
+# -------------------- ADMIN AUTHENTICATION --------------------
+
+
+def show_login():
+    username = st.secrets["auth"]["username"]
+    password_hash = st.secrets["auth"]["password_hash"]
+    cookie_key = st.secrets["auth"]["cookie_key"]
+
+    credentials = {
+        "usernames": {
+            username: {
+                "name": "Administrator",
+                "password": password_hash,
+            }
+        }
+    }
+
+    authenticator = stauth.Authenticate(
+        credentials=credentials,
+        cookie_name="cyber_sentinels_auth",
+        cookie_key=cookie_key,
+        cookie_expiry_days=7,
+        auto_hash=False,
+    )
+
+    authenticator.login(
+        location="main",
+        max_login_attempts=5,
+        fields={
+            "Form name": "Cyber Sentinels Admin Login",
+            "Username": "Username",
+            "Password": "Password",
+            "Login": "Log in",
+        },
+    )
+
+    auth_status = st.session_state.get("authentication_status")
+
+    if auth_status is not True:
+        if auth_status is False:
+            st.error("Invalid username or password.")
+        st.stop()
+
+    return authenticator
+
+
+authenticator = show_login()
 
 # -------------------- THEME --------------------
 
@@ -126,6 +173,13 @@ with st.sidebar:
         "NAVIGATION",
         ["Dashboard", "Analyze Logs", "Settings"],
         label_visibility="visible",
+    )
+    st.divider()
+
+    authenticator.logout(
+    button_name="Log out",
+    location="sidebar",
+    key="admin_logout",
     )
 
     st.divider()
