@@ -23,6 +23,7 @@ def analyze_events(df):
         )
 
     df = df.copy()
+
     df["timestamp"] = pd.to_datetime(
         df["timestamp"], errors="coerce"
     )
@@ -84,7 +85,58 @@ def analyze_events(df):
                     ),
                 })
 
-    # Rule 2: Successful logins outside lab hours.
+    # Rule 2: Repeated failures without requiring a successful login.
+    # A qualifying sequence is reported once per account/computer pair.
+    for (account, computer), group in df.groupby(
+        ["account", "computer"], dropna=False
+    ):
+        failures = (
+            group[group["event"] == "failure"]
+            .sort_values("timestamp")
+        )
+
+        if len(failures) < FAILED_THRESHOLD:
+            continue
+
+        times = failures["timestamp"].reset_index(drop=True)
+        flagged_window = None
+
+        for i in range(len(times)):
+            start = times.iloc[i]
+            end = start + pd.Timedelta(minutes=WINDOW_MINUTES)
+
+            window_failures = failures[
+                (failures["timestamp"] >= start)
+                & (failures["timestamp"] <= end)
+            ]
+
+            if len(window_failures) >= FAILED_THRESHOLD:
+                flagged_window = window_failures
+                break
+
+        if flagged_window is not None:
+            incidents.append({
+                "account": account,
+                "computer": computer,
+                "rule": "Repeated failures without successful login",
+                "severity": "High",
+                "start_time": flagged_window["timestamp"].min(),
+                "end_time": flagged_window["timestamp"].max(),
+                "event_ids": (
+                    flagged_window["event_id"].astype(str).tolist()
+                ),
+                "evidence": (
+                    f"{len(flagged_window)} failed login attempts occurred "
+                    f"within {WINDOW_MINUTES} minutes. "
+                    "No successful login is required to trigger this rule."
+                ),
+                "recommendation": (
+                    "Investigate the repeated failures and verify "
+                    "whether the account owner initiated them."
+                ),
+            })
+
+    # Rule 3: Successful logins outside lab hours.
     opening_hour = 8
     closing_hour = 18
 
