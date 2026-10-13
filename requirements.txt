@@ -1,4 +1,5 @@
-python
 streamlit
 pandas
 plotly
+streamlit-authenticator
+bcrypt

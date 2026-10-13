@@ -1,4 +1,3 @@
-
 import pandas as pd
 
 REQUIRED_COLUMNS = {
@@ -21,7 +20,6 @@ def analyze_events(
     consecutive_threshold=5,
 ):
     """Detect suspicious login patterns with explainable evidence."""
-
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
         raise ValueError(
@@ -30,10 +28,8 @@ def analyze_events(
 
     if failed_threshold < 1 or consecutive_threshold < 1:
         raise ValueError("Failed-login thresholds must be at least 1.")
-
     if window_minutes < 1:
         raise ValueError("Detection window must be at least 1 minute.")
-
     if not (
         0 <= opening_hour <= 23
         and 1 <= closing_hour <= 24
@@ -42,15 +38,11 @@ def analyze_events(
         raise ValueError("Invalid lab hours.")
 
     df = df.copy()
-    df["timestamp"] = pd.to_datetime(
-        df["timestamp"], errors="coerce"
-    )
-
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
     if df["timestamp"].isna().any():
         raise ValueError("Some timestamps are invalid.")
 
     df["event"] = df["event"].astype(str).str.strip().str.lower()
-
     unknown = set(df["event"].unique()) - {"success", "failure"}
     if unknown:
         raise ValueError(
@@ -60,21 +52,17 @@ def analyze_events(
     df = df.sort_values("timestamp").reset_index(drop=True)
     incidents = []
 
-    # Rule 1: Repeated failures followed by a successful login.
+    # Rule 1: repeated failures followed by a successful login.
     for (account, computer), group in df.groupby(
         ["account", "computer"], dropna=False, sort=False
     ):
         failures_seen = group[group["event"] == "failure"]
-
         for _, success in group[group["event"] == "success"].iterrows():
-            start = success["timestamp"] - pd.Timedelta(
-                minutes=window_minutes
-            )
+            start = success["timestamp"] - pd.Timedelta(minutes=window_minutes)
             failures = failures_seen[
                 (failures_seen["timestamp"] >= start)
                 & (failures_seen["timestamp"] < success["timestamp"])
             ]
-
             if len(failures) >= failed_threshold:
                 incidents.append({
                     "account": account,
@@ -98,10 +86,9 @@ def analyze_events(
                     ),
                 })
 
-    # Rule 2: Successful logins outside configured lab hours.
+    # Rule 2: successful logins outside configured lab hours.
     for _, event in df[df["event"] == "success"].iterrows():
         hour = event["timestamp"].hour
-
         if hour < opening_hour or hour >= closing_hour:
             incidents.append({
                 "account": event["account"],
@@ -112,17 +99,16 @@ def analyze_events(
                 "end_time": event["timestamp"],
                 "event_ids": str(event["event_id"]),
                 "evidence": (
-                    f"Successful login at "
-                    f"{event['timestamp'].strftime('%H:%M')} occurred "
-                    f"outside lab hours ({opening_hour:02d}:00–"
-                    f"{closing_hour:02d}:00)."
+                    f"Successful login at {event['timestamp'].strftime('%H:%M')} "
+                    f"occurred outside lab hours "
+                    f"({opening_hour:02d}:00–{closing_hour:02d}:00)."
                 ),
                 "recommendation": (
                     "Confirm whether after-hours access was authorized."
                 ),
             })
 
-    # Rule 3: Consecutive failures without a successful login.
+    # Rule 3: consecutive failures without a successful login.
     # A streak followed by success within the window is handled by Rule 1.
     for (account, computer), group in df.groupby(
         ["account", "computer"], dropna=False, sort=False
@@ -164,34 +150,28 @@ def analyze_events(
                 ),
             })
 
-    
         for _, event in group.iterrows():
             if streak:
                 span = (
                     event["timestamp"] - streak[0]["timestamp"]
                 ).total_seconds() / 60
-
                 if span > window_minutes:
                     add_failure_incident(streak)
                     streak = []
 
             if event["event"] == "failure":
                 streak.append(event.to_dict())
-            else:
-                if streak:
-                    gap_to_success = (
-                        event["timestamp"] - streak[-1]["timestamp"]
-                    ).total_seconds() / 60
+            elif streak:
+                gap_to_success = (
+                    event["timestamp"] - streak[-1]["timestamp"]
+                ).total_seconds() / 60
+                if gap_to_success <= window_minutes:
+                    # Rule 1 handles this failure-to-success sequence.
+                    streak = []
+                else:
+                    add_failure_incident(streak)
+                    streak = []
 
-                    if gap_to_success <= window_minutes:
-                        # Rule 1 handles this failure-to-success sequence.
-                        streak = []
-                    else:
-                        add_failure_incident(streak)
-                        streak = []
-
-        # Process any remaining streak after the loop finishes.
         add_failure_incident(streak)
-
 
     return pd.DataFrame(incidents, columns=INCIDENT_COLUMNS)
