@@ -1,4 +1,5 @@
 import hashlib
+import html
 import sqlite3
 from pathlib import Path
 from datetime import datetime
@@ -291,31 +292,65 @@ authenticator = show_login()
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
-    :root {
-      --bg:#00161A; --sidebar:#001114; --card:#002429; --elevated:#062F35;
-      --border:#3C494C; --cyan:#22D3EE; --cyan-soft:#8AEBFF;
-      --mint:#5FF7AF; --pink:#FFB1C7; --text:#C4E9F0; --muted:#BBC9CD;
-    }
-    .stApp,[data-testid="stAppViewContainer"] {
-      background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
-    }
-    [data-testid="stSidebar"] {background:var(--sidebar);border-right:1px solid var(--border);}
-    h1,h2,h3 {font-family:'Plus Jakarta Sans',sans-serif!important;color:var(--cyan-soft)!important;}
-    [data-testid="stMetric"] {background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
-    [data-testid="stMetricLabel"] {color:var(--muted);}
-    [data-testid="stMetricValue"] {color:var(--cyan-soft);}
-    .stButton>button,.stDownloadButton>button {background:var(--cyan);color:#00363E;border:0;border-radius:8px;font-weight:600;}
-    .stButton>button:hover,.stDownloadButton>button:hover {background:var(--cyan-soft);color:var(--bg);}
-    [data-testid="stFileUploader"] {background:var(--card);border:1px dashed var(--cyan);border-radius:12px;padding:12px;}
-    div[data-testid="stVerticalBlockBorderWrapper"] {border-color:var(--border);}
-    hr {border-color:var(--border);}
-    code,.technical {font-family:'JetBrains Mono',monospace;}
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    :root {--bg:#001316;--sidebar:#001013;--panel:#002328;--panel2:#002b30;--border:#12434a;--cyan:#21d5e8;--ice:#bcecf3;--mint:#59f0b0;--pink:#ff8fb8;--red:#ff6b79;--amber:#ffd166;--text:#c1dce0;--muted:#78969b;}
+    html,body,[class*="css"] {font-family:'DM Sans',sans-serif;}
+    .stApp,[data-testid="stAppViewContainer"] {background:radial-gradient(ellipse at 60% -20%,#06383e 0%,var(--bg) 48%);color:var(--text);}
+    [data-testid="stHeader"]{background:rgba(0,19,22,.92);border-bottom:1px solid var(--border);}
+    [data-testid="stSidebar"]{background:var(--sidebar);border-right:1px solid #12363b;}
+    [data-testid="stSidebar"] > div:first-child{padding-top:1rem;}
+    [data-testid="stRadio"] > div{gap:5px;}
+    [data-testid="stRadio"] label{padding:9px 11px;border-radius:9px;border:1px solid transparent;transition:all .15s ease;}
+    [data-testid="stRadio"] label:hover{background:#052b30;border-color:#12434a;}
+    [data-testid="stRadio"] label:has(input:checked){background:#07363c;border-color:#17616a;}
+    [data-testid="stTabs"] button{color:#9fc4c9;}
+    [data-testid="stExpander"]{border:1px solid var(--border)!important;border-radius:11px!important;background:#002126!important;}
+    [data-testid="stAlert"]{border-radius:10px;}
+    [data-testid="stFileUploaderDropzone"]{background:#002126!important;border:1px dashed #21717a!important;border-radius:12px!important;}
+    h1,h2,h3{font-family:'Space Grotesk',sans-serif!important;color:var(--ice)!important;letter-spacing:-.025em;}
+    h1{font-size:2rem!important;} h2{font-size:1.35rem!important;} h3{font-size:1.05rem!important;}
+    p, label, [data-testid="stMarkdownContainer"]{color:var(--text);}
+    [data-testid="stCaptionContainer"]{color:var(--muted);}
+    [data-testid="stMetric"]{background:linear-gradient(145deg,#052b30,#002126);border:1px solid var(--border);border-radius:15px;padding:18px 18px 15px;box-shadow:0 8px 24px #00000014;}
+    [data-testid="stMetricLabel"]{color:#91b5bb;font-family:'DM Mono',monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;}
+    [data-testid="stMetricValue"]{color:var(--ice);font-family:'Space Grotesk',sans-serif;font-weight:600;}
+    [data-testid="stMetricDelta"]{font-family:'DM Mono',monospace;}
+    .stButton>button,.stDownloadButton>button,[data-testid="stFormSubmitButton"] button{background:var(--cyan);color:#00252a;border:0;border-radius:9px;font-weight:700;transition:all .15s ease;}
+    .stButton>button:hover,.stDownloadButton>button:hover,[data-testid="stFormSubmitButton"] button:hover{background:#a2f5ff;color:#001316;box-shadow:0 0 0 3px #21d5e822;}
+    [data-testid="stFileUploader"]{background:#002328;border:1px dashed #21717a;border-radius:14px;padding:14px;}
+    [data-testid="stFileUploader"] section{background:transparent;}
+    [data-testid="stVerticalBlockBorderWrapper"]{background:rgba(0,35,40,.55);border-color:var(--border)!important;border-radius:14px;}
+    [data-testid="stDataFrame"]{border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+    [data-baseweb="input"] input,[data-baseweb="select"]>div,textarea{background:#002126!important;border-color:var(--border)!important;color:var(--ice)!important;border-radius:8px!important;}
+    [role="radiogroup"] label{background:#05262a;border:1px solid transparent;border-radius:8px;padding:8px 10px;margin:3px 0;}
+    [role="radiogroup"] label:has(input:checked){border-color:var(--cyan);background:#07363c;}
+    hr{border-color:var(--border)!important;}
+    code,.mono{font-family:'DM Mono',monospace;}
+    .brand-lockup{padding:8px 4px 18px;border-bottom:1px solid #14363b;margin-bottom:18px;}
+    .brand-name{font:600 20px 'Space Grotesk',sans-serif;color:#c7f1f5;letter-spacing:-.04em;}
+    .brand-sub{font:10px 'DM Mono',monospace;letter-spacing:.14em;color:#7fa2a8;margin-top:3px;}
+    .eyebrow{font:10px 'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px;}
+    .hero-panel{height:100%;min-height:220px;background:linear-gradient(140deg,#07353a 0%,#002328 70%);border:1px solid #12434a;border-radius:16px;padding:23px 24px;}
+    .hero-title{font:600 25px 'Space Grotesk',sans-serif;color:#c5edf2;letter-spacing:-.04em;margin:0 0 8px;}
+    .hero-copy{font-size:13px;line-height:1.65;color:#a7c6ca;max-width:690px;}
+    .hero-pill{display:inline-block;border:1px solid #14515a;background:#07353a;color:#8feefa;border-radius:99px;padding:5px 9px;font:10px 'DM Mono',monospace;letter-spacing:.07em;margin-bottom:12px;}
+    .mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px;}
+    .mini-card{background:#002126;border:1px solid #0d3c42;border-radius:10px;padding:12px;min-height:72px;}
+    .mini-label{font:10px 'DM Mono',monospace;color:#89aeb4;text-transform:uppercase;letter-spacing:.06em;}
+    .mini-value{font:500 13px 'DM Mono',monospace;color:#c6eef3;margin-top:7px;}
+    .status-dot{display:inline-block;width:7px;height:7px;background:var(--mint);border-radius:50%;margin-right:7px;box-shadow:0 0 10px #59f0b077;}
+    .activity-card{background:#002126;border:1px solid #0c3b41;border-radius:11px;padding:13px 14px;margin:8px 0;}
+    .activity-top{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px;}
+    .activity-name{font:500 12px 'DM Mono',monospace;color:#b9edf2;}
+    .activity-time{font:10px 'DM Mono',monospace;color:#6d9399;}
+    .severity{font:10px 'DM Mono',monospace;padding:3px 7px;border-radius:99px;letter-spacing:.04em;}
+    .sev-high{background:#4a1530;color:#ff9dc4;}.sev-medium{background:#453615;color:#ffd77d;}.sev-critical{background:#501a24;color:#ff929a;}.sev-low{background:#064d3a;color:#6df4bd;}
+    .activity-copy{font-size:12px;line-height:1.55;color:#a6c3c8;}
+    @media(max-width:900px){.mini-grid{grid-template-columns:1fr}.hero-title{font-size:21px}}
     </style>
     """,
     unsafe_allow_html=True,
 )
-
 
 # -------------------- SETTINGS --------------------
 defaults = {
@@ -334,7 +369,7 @@ for key, value in defaults.items():
 def clear_current_analysis():
     for key in [
         "incidents", "event_count", "analysis_hash", "repeat_warnings",
-        "current_run_id", "current_filename", "duplicate_upload",
+        "current_run_id", "current_filename", "duplicate_upload", "analysis_complete",
     ]:
         st.session_state.pop(key, None)
 
@@ -440,12 +475,12 @@ def show_incidents(incidents):
 
 # -------------------- SIDEBAR --------------------
 with st.sidebar:
-    st.markdown("## 🛡️ Cyber Sentinels")
-    st.caption("AUTHENTICATION MONITORING")
+    st.markdown("""<div class="brand-lockup"><div class="brand-name">◈ Cyber Sentinels</div><div class="brand-sub">SHARED LAB AUTH GUARD</div></div><div class="eyebrow"><span class="status-dot"></span>MONITORING READY</div>""", unsafe_allow_html=True)
+    st.caption("Explainable authentication monitoring")
     st.divider()
     page = st.radio(
         "NAVIGATION",
-        ["Dashboard", "Analyze Logs", "History", "Settings"],
+        ["Dashboard", "Incidents", "History", "Settings"],
         label_visibility="visible",
     )
     st.divider()
@@ -465,142 +500,166 @@ with st.sidebar:
                 st.write(f"• {account}")
 
 
-st.title("Cyber Sentinels")
-st.caption("Explainable authentication monitoring for shared labs")
+header_left, header_right = st.columns([3, 1])
+with header_left:
+    st.markdown("### ◉ Authentication Telemetry & Incident Overview")
+with header_right:
+    st.markdown("<div style='text-align:right;padding-top:12px;font:10px DM Mono,monospace;color:#59f0b0'>● ENGINE READY <span style='color:#78969b'> · LOCAL ANALYSIS</span></div>", unsafe_allow_html=True)
 
 
 # -------------------- DASHBOARD --------------------
 if page == "Dashboard":
-    st.markdown("## Security Overview")
-    st.caption("Current analysis results and repeat-account warnings.")
+    incidents = st.session_state.get("incidents", pd.DataFrame(columns=["account", "computer", "rule", "severity", "start_time", "end_time", "event_ids", "evidence", "recommendation"]))
+    event_count = int(st.session_state.get("event_count", 0))
+    affected = int(incidents["account"].nunique()) if not incidents.empty else 0
+    high = int((incidents["severity"] == "High").sum()) if not incidents.empty else 0
+    critical = int((incidents["severity"] == "Critical Review").sum()) if not incidents.empty else 0
+    medium = int((incidents["severity"] == "Medium").sum()) if not incidents.empty else 0
+    repeat_warnings = st.session_state.get("repeat_warnings", pd.DataFrame())
+    repeat_count = len(repeat_warnings) if isinstance(repeat_warnings, pd.DataFrame) else 0
 
-    if "incidents" not in st.session_state:
-        st.info("No current analysis results yet. Open Analyze Logs to upload a CSV.")
-    else:
-        show_metrics(st.session_state["incidents"], st.session_state["event_count"])
-        st.divider()
-        show_historical_warnings(
-            st.session_state.get("repeat_warnings", pd.DataFrame())
-        )
-        st.divider()
-        show_incidents(st.session_state["incidents"])
-        if st.button("Clear current results"):
-            clear_current_analysis()
-            st.rerun()
+    top_a, top_b = st.columns([1.45, 1])
+    with top_a:
+        st.markdown(f"""<div class="hero-panel"><div class="hero-pill">SCOPE MONITOR · LOCAL ENVIRONMENT</div><div class="hero-title">Shared Lab Authentication</div><div class="hero-copy">A clear view of authentication events, suspicious login patterns and recurring accounts across your uploaded datasets. Every alert includes evidence to support analyst review.</div><div class="mini-grid"><div class="mini-card"><div class="mini-label">◷ Analysis Window</div><div class="mini-value">{st.session_state.opening_hour:02d}:00 – {st.session_state.closing_hour:02d}:00</div><div style="font-size:11px;color:#78969b;margin-top:4px">Configured lab hours</div></div><div class="mini-card"><div class="mini-label">⌘ Detection Rules</div><div class="mini-value">3 Active Rules</div><div style="font-size:11px;color:#59f0b0;margin-top:4px">Rule-based · Explainable</div></div><div class="mini-card"><div class="mini-label">⛨ Response Mode</div><div class="mini-value">Human-in-the-Loop</div><div style="font-size:11px;color:#78969b;margin-top:4px">No automatic lockouts</div></div></div></div>""", unsafe_allow_html=True)
+    with top_b:
+        with st.container(border=True):
+            st.markdown("<div class='eyebrow'>● LOG INGESTION ENGINE</div>", unsafe_allow_html=True)
+            st.markdown("### Analyze New Auth Logs")
+            st.markdown("<div class='hero-copy'>Drop a CSV here to validate records, run detection rules and compare accounts against saved SQLite history.</div>", unsafe_allow_html=True)
+            uploaded_file = st.file_uploader(
+                "Choose authentication CSV", type=["csv"], key="dashboard_csv_upload",
+                help="Required columns: event_id, timestamp, account, computer, event",
+                label_visibility="collapsed",
+            )
+            st.caption("Required fields: event_id · timestamp · account · computer · event")
+            if uploaded_file is not None:
+                file_bytes = uploaded_file.getvalue()
+                current_hash = hashlib.sha256(file_bytes).hexdigest()
+                try:
+                    uploaded_df = pd.read_csv(pd.io.common.BytesIO(file_bytes))
+                    errors, warnings = validate_csv(uploaded_df)
+                    for warning in warnings:
+                        st.warning(warning)
+                    if errors:
+                        for error in errors:
+                            st.error(error)
+                    else:
+                        st.success(f"CSV validated · {len(uploaded_df):,} events ready")
+                        with st.expander("Preview uploaded events"):
+                            st.dataframe(uploaded_df.head(50), use_container_width=True, hide_index=True)
+                        if st.button("Run Security Analysis", type="primary", use_container_width=True, key="dashboard_run_analysis"):
+                            try:
+                                detected = analyze_events(
+                                    uploaded_df,
+                                    failed_threshold=st.session_state.failed_threshold,
+                                    consecutive_threshold=st.session_state.consecutive_threshold,
+                                    window_minutes=st.session_state.window_minutes,
+                                    opening_hour=st.session_state.opening_hour,
+                                    closing_hour=st.session_state.closing_hour,
+                                )
+                                accounts = uploaded_df["account"].dropna().astype(str).str.strip()
+                                prior_warnings = get_historical_warnings(accounts.tolist())
+                                existing = find_existing_run(current_hash)
+                                if existing:
+                                    run_id = int(existing["run_id"])
+                                    duplicate = True
+                                else:
+                                    run_id, _ = save_analysis(current_hash, uploaded_file.name, len(uploaded_df), detected, accounts.tolist())
+                                    duplicate = False
+                                st.session_state["incidents"] = detected
+                                st.session_state["event_count"] = len(uploaded_df)
+                                st.session_state["analysis_hash"] = current_hash
+                                st.session_state["repeat_warnings"] = prior_warnings
+                                st.session_state["current_run_id"] = run_id
+                                st.session_state["current_filename"] = uploaded_file.name
+                                st.session_state["duplicate_upload"] = duplicate
+                                st.session_state["analysis_complete"] = True
+                                st.rerun()
+                            except Exception as exc:
+                                st.error(f"Analysis failed: {exc}")
+                except Exception as exc:
+                    st.error(f"Could not read the uploaded CSV: {exc}")
+            st.caption("Alerts are indicators for human review, not proof of a breach.")
 
-    st.markdown("## Recurring Historical Accounts")
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+    m1,m2,m3,m4 = st.columns(4)
+    m1.metric("Events Analyzed", f"{event_count:,}")
+    m2.metric("Incidents Detected", f"{len(incidents):,}")
+    m3.metric("Affected Accounts", f"{affected:,}")
+    m4.metric("Historical Warnings", f"{repeat_count:,}", delta="Repeat accounts" if repeat_count else None, delta_color="off")
+
+    left, right = st.columns([1, 1.45])
+    with left:
+        with st.container(border=True):
+            st.markdown("<div class='eyebrow'>CLASSIFICATION SPLIT</div>", unsafe_allow_html=True)
+            st.markdown("### Incident Distribution")
+            if incidents.empty:
+                st.markdown("<div style='padding:36px 12px;text-align:center;color:#78969b'>Your incident distribution will appear here after the first analysis.</div>", unsafe_allow_html=True)
+            else:
+                counts = incidents["severity"].value_counts().rename_axis("Severity").reset_index(name="Count")
+                fig = px.pie(counts, names="Severity", values="Count", hole=.68, color="Severity", color_discrete_map={"Medium":"#ffd166","High":"#ff8fb8","Critical Review":"#ff5964"})
+                fig.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font_color="#c1dce0",showlegend=True,legend_title_text="",margin=dict(t=8,b=8,l=8,r=8),height=290)
+                fig.update_traces(textposition="inside",textinfo="percent",marker=dict(line=dict(color="#002328",width=3)))
+                st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
+                st.caption(f"{len(incidents):,} flagged events · {high} high · {critical} critical review · {medium} medium")
+    with right:
+        with st.container(border=True):
+            st.markdown("<div class='eyebrow'>◉ ANALYST WORKSPACE</div>", unsafe_allow_html=True)
+            st.markdown("### Recent Security Activity")
+            if incidents.empty:
+                st.markdown("<div style='padding:24px 10px;text-align:center;color:#78969b'>No security activity to display yet.<br>Upload a CSV and run analysis to populate this stream.</div>", unsafe_allow_html=True)
+                if st.button("Open Analyze Logs", use_container_width=True):
+                    st.session_state["_jump_to_analyze"] = True
+                    st.rerun()
+            else:
+                recent = incidents.tail(5).iloc[::-1]
+                for _, row in recent.iterrows():
+                    severity = str(row.get("severity", "Medium"))
+                    css_sev = "sev-critical" if severity == "Critical Review" else ("sev-high" if severity == "High" else "sev-medium")
+                    stamp = str(row.get("end_time", ""))
+                    stamp = stamp[-8:] if len(stamp) >= 8 else "Review"
+                    evidence = str(row.get("evidence", "Flagged by detection rule"))
+                    st.markdown(f"""<div class="activity-card"><div class="activity-top"><span class="activity-name">{html.escape(str(row.get('computer','Unknown host')))} · {html.escape(str(row.get('account','Unknown account')))}</span><span><span class="severity {css_sev}">{severity.upper()}</span> <span class="activity-time">{stamp}</span></span></div><div class="activity-copy">{html.escape(evidence)}</div><div style="font:10px DM Mono,monospace;color:#78969b;margin-top:7px">{html.escape(str(row.get('rule','Detection rule')))}</div></div>""", unsafe_allow_html=True)
+                st.caption("Most recent findings from the current analysis. Review evidence before taking action.")
+
+    st.markdown("### Historical Account Signals")
     repeat_accounts = get_repeat_accounts(min_runs=2)
     if repeat_accounts.empty:
-        st.info("No account has been flagged across two or more distinct analysis runs yet.")
+        st.caption("No account has been flagged across two or more distinct analysis runs yet.")
     else:
-        st.caption("Accounts flagged in at least two distinct analysis runs.")
-        st.dataframe(repeat_accounts, use_container_width=True, hide_index=True)
+        st.caption("Accounts flagged in at least two distinct analysis runs. Repeated flags are a review signal, not proof of misuse.")
+        st.dataframe(repeat_accounts,use_container_width=True,hide_index=True)
+    if not incidents.empty and st.button("Clear Current Results"):
+        clear_current_analysis()
+        st.rerun()
 
 
-# -------------------- ANALYZE LOGS --------------------
-elif page == "Analyze Logs":
-    st.markdown("## Analyze Authentication Logs")
-    st.write(
-        "Upload a CSV to validate the records, detect suspicious patterns, "
-        "and compare current accounts with historical findings."
-    )
-    uploaded_file = st.file_uploader(
-        "Upload authentication logs",
-        type=["csv"],
-        help="Required columns: event_id, timestamp, account, computer, event",
-    )
-
-    if uploaded_file is not None:
-        file_bytes = uploaded_file.getvalue()
-        current_hash = hashlib.sha256(file_bytes).hexdigest()
-
-        if st.session_state.get("analysis_hash") != current_hash:
-            clear_current_analysis()
-
-        try:
-            df = pd.read_csv(uploaded_file)
-            errors, warnings = validate_csv(df)
-            for warning in warnings:
-                st.warning(warning)
-
-            if errors:
-                for error in errors:
-                    st.error(error)
-            else:
-                st.success(f"CSV validated: {len(df)} events found.")
-                with st.expander("Preview uploaded events"):
-                    st.dataframe(df.head(100), use_container_width=True, hide_index=True)
-
-                with st.expander("Active detection settings"):
-                    st.write(f"Failed-login threshold: **{st.session_state.failed_threshold}**")
-                    st.write(f"Consecutive-failure threshold: **{st.session_state.consecutive_threshold}**")
-                    st.write(f"Detection window: **{st.session_state.window_minutes} minutes**")
-                    st.write(
-                        f"Lab hours: **{st.session_state.opening_hour:02d}:00–"
-                        f"{st.session_state.closing_hour:02d}:00**"
-                    )
-
-                if st.button("Run Security Analysis", type="primary"):
-                    try:
-                        incidents = analyze_events(
-                            df,
-                            failed_threshold=st.session_state.failed_threshold,
-                            consecutive_threshold=st.session_state.consecutive_threshold,
-                            window_minutes=st.session_state.window_minutes,
-                            opening_hour=st.session_state.opening_hour,
-                            closing_hour=st.session_state.closing_hour,
-                        )
-
-                        account_col = df["account"].dropna().astype(str).str.strip()
-                        # Look up prior warnings BEFORE saving the current run.
-                        repeat_warnings = get_historical_warnings(account_col.tolist())
-
-                        existing = find_existing_run(current_hash)
-                        if existing:
-                            st.session_state["duplicate_upload"] = True
-                            run_id = int(existing["run_id"])
-                        else:
-                            run_id, _ = save_analysis(
-                                current_hash,
-                                uploaded_file.name,
-                                len(df),
-                                incidents,
-                                account_col.tolist(),
-                            )
-                            st.session_state["duplicate_upload"] = False
-
-                        st.session_state["incidents"] = incidents
-                        st.session_state["event_count"] = len(df)
-                        st.session_state["analysis_hash"] = current_hash
-                        st.session_state["repeat_warnings"] = repeat_warnings
-                        st.session_state["current_run_id"] = run_id
-                        st.session_state["current_filename"] = uploaded_file.name
-                        st.rerun()
-                    except Exception as exc:
-                        st.error(f"Analysis failed: {exc}")
-
-                if st.session_state.get("analysis_hash") == current_hash and "incidents" in st.session_state:
-                    if st.session_state.get("duplicate_upload"):
-                        st.info(
-                            "This exact CSV was analyzed before. Its existing history "
-                            "was reused, so uploading it again does not inflate repeat counts."
-                        )
-                    else:
-                        st.success("Analysis completed and saved to SQLite history.")
-
-                    show_metrics(st.session_state["incidents"], st.session_state["event_count"])
-                    st.divider()
-                    show_historical_warnings(
-                        st.session_state.get("repeat_warnings", pd.DataFrame())
-                    )
-                    st.divider()
-                    show_incidents(st.session_state["incidents"])
-        except Exception as exc:
-            st.error(f"Could not read the uploaded CSV: {exc}")
+# -------------------- INCIDENTS --------------------
+elif page == "Incidents":
+    st.markdown("<div class='eyebrow'>◉ ANALYST WORKSPACE</div>", unsafe_allow_html=True)
+    st.markdown("## Incident Review")
+    st.caption("Review evidence-backed findings from your latest CSV analysis. Alerts are signals for human review, not proof of compromise.")
+    incidents = st.session_state.get("incidents", pd.DataFrame())
+    if incidents.empty and not st.session_state.get("analysis_complete"):
+        with st.container(border=True):
+            st.markdown("### No analysis loaded")
+            st.write("Upload and analyze an authentication CSV from the Dashboard to populate this workspace.")
+            st.info("Expected columns: event_id, timestamp, account, computer, event")
+    else:
+        if st.session_state.get("duplicate_upload"):
+            st.info("This exact CSV was analyzed previously. Existing history was reused to avoid inflating repeat counts.")
+        elif st.session_state.get("analysis_complete"):
+            st.success(f"Latest analysis: {st.session_state.get('current_filename', 'CSV upload')} · {st.session_state.get('event_count', 0):,} events")
+        show_metrics(incidents, int(st.session_state.get("event_count", 0)))
+        st.divider()
+        show_historical_warnings(st.session_state.get("repeat_warnings", pd.DataFrame()))
+        st.divider()
+        show_incidents(incidents)
 
 
 # -------------------- HISTORY --------------------
 elif page == "History":
+    st.markdown("<div class='eyebrow'>◷ AUDIT TRAIL</div>", unsafe_allow_html=True)
     st.markdown("## Analysis History")
     st.caption("SQLite stores analysis metadata, account identifiers, and detected incidents—not raw CSV files.")
 
@@ -638,6 +697,7 @@ elif page == "History":
 
 # -------------------- SETTINGS --------------------
 elif page == "Settings":
+    st.markdown("<div class='eyebrow'>⚙ CONTROL PLANE</div>", unsafe_allow_html=True)
     st.markdown("## Detection Settings")
     st.write("Changes apply to the next analysis.")
 
