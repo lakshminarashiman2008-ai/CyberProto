@@ -1,20 +1,19 @@
 
 import pandas as pd
 
-FAILED_THRESHOLD = 3
-WINDOW_MINUTES = 10
-
 REQUIRED_COLUMNS = {
-    "event_id",
-    "timestamp",
-    "account",
-    "computer",
-    "event",
+    "event_id", "timestamp", "account", "computer", "event"
 }
 
 
-def analyze_events(df):
-    """Detect suspicious login patterns and return explainable incidents."""
+def analyze_events(
+    df,
+    failed_threshold=3,
+    window_minutes=10,
+    opening_hour=8,
+    closing_hour=18,
+):
+    """Detect suspicious login patterns with explainable evidence."""
 
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
@@ -22,23 +21,30 @@ def analyze_events(df):
             f"Missing required columns: {', '.join(sorted(missing))}"
         )
 
+    if not (1 <= failed_threshold):
+        raise ValueError("Failed-login threshold must be at least 1.")
+
+    if window_minutes < 1:
+        raise ValueError("Detection window must be at least 1 minute.")
+
+    if not (0 <= opening_hour <= 23 and 1 <= closing_hour <= 24):
+        raise ValueError("Invalid lab hours.")
+
+    if opening_hour >= closing_hour:
+        raise ValueError("Opening hour must be earlier than closing hour.")
+
     df = df.copy()
-    df["timestamp"] = pd.to_datetime(
-        df["timestamp"], errors="coerce"
-    )
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
 
     if df["timestamp"].isna().any():
         raise ValueError("Some timestamps are invalid.")
 
     df["event"] = df["event"].astype(str).str.strip().str.lower()
 
-    allowed_events = {"success", "failure"}
-    unknown = set(df["event"].unique()) - allowed_events
-
+    unknown = set(df["event"].unique()) - {"success", "failure"}
     if unknown:
         raise ValueError(
-            f"Unsupported event types: {', '.join(sorted(unknown))}. "
-            "Use 'success' or 'failure'."
+            f"Unsupported event types: {', '.join(sorted(unknown))}"
         )
 
     df = df.sort_values("timestamp").reset_index(drop=True)
@@ -48,20 +54,19 @@ def analyze_events(df):
     for (account, computer), group in df.groupby(
         ["account", "computer"], dropna=False
     ):
-        group = group.sort_values("timestamp")
+        failures_seen = group[group["event"] == "failure"]
 
         for _, success in group[group["event"] == "success"].iterrows():
             start = success["timestamp"] - pd.Timedelta(
-                minutes=WINDOW_MINUTES
+                minutes=window_minutes
             )
 
-            failures = group[
-                (group["event"] == "failure")
-                & (group["timestamp"] >= start)
-                & (group["timestamp"] <= success["timestamp"])
+            failures = failures_seen[
+                (failures_seen["timestamp"] >= start)
+                & (failures_seen["timestamp"] < success["timestamp"])
             ]
 
-            if len(failures) >= FAILED_THRESHOLD:
+            if len(failures) >= failed_threshold:
                 incidents.append({
                     "account": account,
                     "computer": computer,
@@ -69,28 +74,23 @@ def analyze_events(df):
                     "severity": "High",
                     "start_time": failures["timestamp"].min(),
                     "end_time": success["timestamp"],
-                    "event_ids": (
+                    "event_ids": ", ".join(
                         failures["event_id"].astype(str).tolist()
                         + [str(success["event_id"])]
                     ),
                     "evidence": (
                         f"{len(failures)} failed login attempts occurred "
-                        f"within {WINDOW_MINUTES} minutes before a "
+                        f"within {window_minutes} minutes before a "
                         "successful login."
                     ),
                     "recommendation": (
-                        "Verify whether the login was expected and "
-                        "check with the account owner."
+                        "Verify whether the login was expected and check "
+                        "with the account owner."
                     ),
                 })
 
-    # Rule 2: Successful logins outside lab hours.
-    opening_hour = 8
-    closing_hour = 18
-
-    successful = df[df["event"] == "success"]
-
-    for _, event in successful.iterrows():
+    # Rule 2: Successful logins outside configured lab hours.
+    for _, event in df[df["event"] == "success"].iterrows():
         hour = event["timestamp"].hour
 
         if hour < opening_hour or hour >= closing_hour:
@@ -101,7 +101,7 @@ def analyze_events(df):
                 "severity": "Medium",
                 "start_time": event["timestamp"],
                 "end_time": event["timestamp"],
-                "event_ids": [str(event["event_id"])],
+                "event_ids": str(event["event_id"]),
                 "evidence": (
                     f"Successful login at "
                     f"{event['timestamp'].strftime('%H:%M')} occurred "
@@ -113,4 +113,10 @@ def analyze_events(df):
                 ),
             })
 
-    return pd.DataFrame(incidents)
+    columns = [
+        "account", "computer", "rule", "severity",
+        "start_time", "end_time", "event_ids",
+        "evidence", "recommendation",
+    ]
+
+    return pd.DataFrame(incidents, columns=columns)
