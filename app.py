@@ -6,6 +6,93 @@ import plotly.express as px
 from detector import analyze_events
 from validator import validate_csv
 
+
+import streamlit as st
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+    --bg: #00161A;
+    --sidebar: #001114;
+    --card: #002429;
+    --elevated: #062F35;
+    --border: #3C494C;
+    --cyan: #22D3EE;
+    --cyan-soft: #8AEBFF;
+    --mint: #5FF7AF;
+    --pink: #FFB1C7;
+    --text: #C4E9F0;
+    --muted: #BBC9CD;
+}
+
+html, body, [data-testid="stAppViewContainer"] {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+}
+
+[data-testid="stSidebar"] {
+    background: var(--sidebar);
+    border-right: 1px solid rgba(60, 73, 76, 0.45);
+}
+
+h1, h2, h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    color: var(--cyan-soft) !important;
+}
+
+[data-testid="stMetric"] {
+    background: var(--card);
+    border: 1px solid rgba(60, 73, 76, 0.65);
+    padding: 18px;
+    border-radius: 12px;
+}
+
+[data-testid="stMetricLabel"] {
+    color: var(--muted);
+}
+
+[data-testid="stMetricValue"] {
+    color: var(--cyan-soft);
+}
+
+.stButton > button,
+.stDownloadButton > button {
+    background: var(--cyan);
+    color: #00363E;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover {
+    background: var(--cyan-soft);
+    color: #00161A;
+    border: none;
+}
+
+[data-testid="stFileUploader"] {
+    background: var(--card);
+    border: 1px dashed var(--cyan);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+[data-testid="stDataFrame"],
+[data-testid="stTable"] {
+    border: 1px solid rgba(60, 73, 76, 0.65);
+    border-radius: 10px;
+}
+
+hr {
+    border-color: rgba(60, 73, 76, 0.5);
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.set_page_config(
     page_title="Cyber Sentinels",
     page_icon="🛡️",
